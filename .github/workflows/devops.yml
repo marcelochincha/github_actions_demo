@@ -92,3 +92,32 @@ jobs:
           echo "Evento: $GITHUB_EVENT_NAME"
           echo "Runner: $RUNNER_OS"
           echo "Build tag: ${{ needs.test.outputs.build_tag }}"
+
+  deploy:
+    needs: [test, package, docs]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/feature/')
+    steps:
+      - name: Download app package
+        uses: actions/download-artifact@v4
+        with:
+          name: app-zip
+          path: dist
+
+      - name: Show package contents
+        run: |
+          echo "Deploying build ${{ needs.test.outputs.build_tag }}"
+          ls -la dist/
+
+      - name: Simulate deployment
+        env:
+          BUILD_TAG: ${{ needs.test.outputs.build_tag }}
+        run: |
+          echo "::group::Deployment summary"
+          echo "Environment : production"
+          echo "Build tag   : $BUILD_TAG"
+          echo "Artifact    : $(ls dist/*.zip)"
+          echo "Triggered by: $GITHUB_ACTOR"
+          echo "Commit      : $GITHUB_SHA"
+          echo "::endgroup::"
+          echo "Deployment of $BUILD_TAG completed successfully."
